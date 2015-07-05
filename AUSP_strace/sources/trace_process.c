@@ -1,0 +1,55 @@
+/*
+** trace_process.c for strace in /home/vadee_s/rendu/AUSP_strace
+**
+** Made by simon vadée
+** Login   <vadee_s@epitech.net>
+**
+** Started on  Sun May 17 19:10:10 2015 simon vadée
+** Last update Sun May 17 19:10:11 2015 simon vadée
+*/
+
+#include "strace.h"
+
+char		*find_cmd(char *cmd)
+{
+  char		*path;
+
+  if (!(path = getenv("PATH")))
+    {
+      write (2, "Could not get the environment, abort\n",
+	     strlen("Could not get the environment, abort\n"));
+      return (NULL);
+    }
+  if (!access(cmd, X_OK))
+     return cmd;
+  return (parse_path(path, cmd));
+}
+
+void		trace_process(pid_t pid, char launch)
+{
+  int		status;
+
+  if (!launch && ptrace(PTRACE_ATTACH, pid, NULL, NULL) == -1)
+    {
+      kill(pid, SIGQUIT);
+      perror("ptrace <PTRACE_ATTACH> failed :  ");
+      return ;
+    }
+  while (42)
+    {
+      if (wait4(pid, &status, 0, NULL) == -1)
+	{
+	  perror("wait4 failed : ");
+	  return ;
+	}
+
+      if (get_infos_process(pid, status)
+      	  || is_dead(pid, status))
+      	return ;
+      if (ptrace(PTRACE_SINGLESTEP, pid, NULL, NULL) == -1)
+	{
+	  kill(pid, SIGQUIT);
+	  perror("ptrace <PTRACE_SINGLESTEP> failed :  ");
+	}
+    }
+}
